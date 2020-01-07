@@ -1,13 +1,24 @@
 import requests
 
+from itertools import count
+
 
 def get_hh_response(lang):
     url = 'https://api.hh.ru/vacancies'
-    payload = {'text':f'Программист {lang}', "areas":"Москва",
-               "only_with_salary": True}
-    response = requests.get(url, params=payload)
-
-    return response.json()
+    print(lang)
+    for page in count():
+        #print(page)
+        payload = {"text": f'Программист {lang}', "areas": "Москва",
+                   "only_with_salary": True, "page": page}
+        try:
+            response = requests.get(url, params=payload)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
+            break
+        page_data = response.json()
+        if page >= page_data['pages']:
+            break
+        yield page_data
 
 
 def predict_rub_salary(salary):
@@ -32,14 +43,17 @@ def get_average_salary(salaries):
     return int(salary_sum/value)
 
 
+
+
 def main():
     languages = ["Python", "Java", "Javascript", "Ruby",
                  "PHP", "C++", "C", "Go"]
     vac = {}
     for language in languages:
-        response = get_hh_response(language)
-        value = response.get('found')
-        vacancies = response.get('items')
+        vacancies = []
+        for chunk in get_hh_response(language):
+            vacancies += chunk['items']
+        value = chunk['found']
         salaries = []
         for vacancy in vacancies:
             salary = vacancy.get('salary')
