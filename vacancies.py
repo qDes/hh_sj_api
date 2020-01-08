@@ -1,5 +1,7 @@
+import os
 import requests
 
+from dotenv import load_dotenv
 from itertools import count
 
 
@@ -43,8 +45,6 @@ def get_average_salary(salaries):
     return int(salary_sum/value)
 
 
-
-
 def main():
     languages = ["Python", "Java", "Javascript", "Ruby",
                  "PHP", "C++", "C", "Go"]
@@ -66,5 +66,19 @@ def main():
     print(vac)
 
 
+def get_sj_response(token):
+    url = 'https://api.superjob.ru/2.0/vacancies'
+    headers = {'X-Api-App-Id': token}
+    payload = {'town':4, 'catalogues': 48}
+    response = requests.get(url, headers=headers, params=payload)
+    return response.json()
+
+
 if __name__ == "__main__":
-    main()
+    #main()
+    load_dotenv()
+    sj_token = os.environ['SJ_TOKEN']
+    response = get_sj_response(sj_token)
+    vacancies = response.get('objects')
+    for vacancy in vacancies:
+        print(vacancy.get('profession'))
