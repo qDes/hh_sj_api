@@ -23,19 +23,34 @@ def get_hh_response(lang):
         yield page_data
 
 
+def get_sj_response(token, lang):
+    print(lang)
+    url = 'https://api.superjob.ru/2.0/vacancies'
+    headers = {'X-Api-App-Id': token}
+    for page in count():
+        payload = {'town':4, 'catalogues': 48,
+                   'keyword': f'Программист {lang}', 
+                   "page": page}
+        try:
+            response = requests.get(url, headers=headers, params=payload)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
+            break
+        page_data = response.json()
+        yield page_data
+        if not page_data.get('more'):
+            break
+    #return response.json()
+
+
+
 def predict_rub_salary_hh(salary):
     if salary.get('currency') != "RUR":
         return None
     low = salary.get('from')
     high = salary.get('to')
     return predict_salary(low, high)
-    '''
-    if low and high:
-        return (low + high) / 2
-    if low:
-        return low * 1.2
-    return high * 0.8
-    '''
+
 
 def get_average_salary(salaries):
     salary_sum = 0
@@ -44,12 +59,12 @@ def get_average_salary(salaries):
         if salary:
             salary_sum += salary
             value += 1
+    if value == 0:
+        return None
     return int(salary_sum/value)
 
 
-def main():
-    languages = ["Python", "Java", "Javascript", "Ruby",
-                 "PHP", "C++", "C", "Go"]
+def parse_vacancies_hh(languages):
     vac = {}
     for language in languages:
         vacancies = []
@@ -65,16 +80,7 @@ def main():
                          "vacancies_processed":len(vacancies),
                          "average_salary":avg_salary
                          }
-    print(vac)
-
-
-def get_sj_response(token, lang):
-    url = 'https://api.superjob.ru/2.0/vacancies'
-    headers = {'X-Api-App-Id': token}
-    payload = {'town':4, 'catalogues': 48,
-               'keyword': f'Программист {lang}'}
-    response = requests.get(url, headers=headers, params=payload)
-    return response.json()
+    return vac
 
 
 def predict_salary(salary_from, salary_to):
@@ -87,7 +93,6 @@ def predict_salary(salary_from, salary_to):
     return salary_to * 0.8
 
 
-
 def predict_rub_salary_sj(vacancy):
     if vacancy.get('currency') != 'rub':
         return None
@@ -96,22 +101,34 @@ def predict_rub_salary_sj(vacancy):
     return predict_salary(salary_from, salary_to)
 
 
+def parse_vacancies_sj(languages):
+    load_dotenv()
+    sj_token = os.environ['SJ_TOKEN']
+    vac = {}
+    for language in languages:
+        vacancies = []
+        for chunk in get_sj_response(sj_token, language):
+            vacancies += chunk['objects']
+        value = chunk.get('total')
+        salaries = []
+        for vacancy in vacancies:
+            salary = predict_rub_salary_sj(vacancy)
+            salaries.append(salary)
+        avg_salary = get_average_salary(salaries)
+        vac[language] = {"vacancies_found": value,
+                         "vacancies_processed":len(vacancies),
+                         "average_salary":avg_salary
+                         }
+    return vac
+
+
+def main():
+    languages = ["Python", "Java", "Javascript", "Ruby",
+                 "PHP", "C++", "C", "Go"]
+    #hh_vacancies = parse_vacancies_hh(languages)
+    sj_vacancies = parse_vacancies_sj(languages)
+    print(sj_vacancies)
 
 
 if __name__ == "__main__":
-    #main()
-    load_dotenv()
-    sj_token = os.environ['SJ_TOKEN']
-    response = get_sj_response(sj_token, 'Java')
-    vacancies = response.get('objects')
-    empty_vacancies = []
-    for vacancy in vacancies:
-        profession = vacancy.get('profession')
-        town = vacancy.get('town').get('title')
-        print(vacancy.get('profession'))
-        print(town)
-        sj_salary = predict_rub_salary_sj(vacancy)
-        print(sj_salary)
-        if sj_salary == 0:
-            empty_vacancies.append(vacancy)
-        print()
+    main()
