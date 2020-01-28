@@ -3,13 +3,23 @@ import requests
 
 from dotenv import load_dotenv
 from itertools import count
+from terminaltables import AsciiTable
+
+
+def print_vacancies_table(title, vacancies):
+    table_data = [['Язык программирования', 'Вакансий найдено',
+                   'Вакансий обработано', 'Средняя зарплата']]
+    for lang, lang_vacancies in vacancies.items():
+        table_data.append([lang]+list(lang_vacancies.values()))
+    table_instance = AsciiTable(table_data, title)
+    table_instance.justify_columns[2] = 'left'
+    print(table_instance.table)
+    print()
 
 
 def get_hh_response(lang):
     url = 'https://api.hh.ru/vacancies'
-    print(lang)
     for page in count():
-        #print(page)
         payload = {"text": f'Программист {lang}', "areas": "Москва",
                    "only_with_salary": True, "page": page}
         try:
@@ -24,12 +34,11 @@ def get_hh_response(lang):
 
 
 def get_sj_response(token, lang):
-    print(lang)
     url = 'https://api.superjob.ru/2.0/vacancies'
     headers = {'X-Api-App-Id': token}
     for page in count():
-        payload = {'town':4, 'catalogues': 48,
-                   'keyword': f'Программист {lang}', 
+        payload = {"town": 4, "catalogues": 48,
+                   "keyword": f"Программист {lang}",
                    "page": page}
         try:
             response = requests.get(url, headers=headers, params=payload)
@@ -40,8 +49,6 @@ def get_sj_response(token, lang):
         yield page_data
         if not page_data.get('more'):
             break
-    #return response.json()
-
 
 
 def predict_rub_salary_hh(salary):
@@ -77,8 +84,8 @@ def parse_vacancies_hh(languages):
             salaries.append(predict_rub_salary_hh(salary))
         avg_salary = get_average_salary(salaries)
         vac[language] = {"vacancies_found": value,
-                         "vacancies_processed":len(vacancies),
-                         "average_salary":avg_salary
+                         "vacancies_processed": len(vacancies),
+                         "average_salary": avg_salary
                          }
     return vac
 
@@ -116,8 +123,8 @@ def parse_vacancies_sj(languages):
             salaries.append(salary)
         avg_salary = get_average_salary(salaries)
         vac[language] = {"vacancies_found": value,
-                         "vacancies_processed":len(vacancies),
-                         "average_salary":avg_salary
+                         "vacancies_processed": len(vacancies),
+                         "average_salary": avg_salary
                          }
     return vac
 
@@ -125,9 +132,10 @@ def parse_vacancies_sj(languages):
 def main():
     languages = ["Python", "Java", "Javascript", "Ruby",
                  "PHP", "C++", "C", "Go"]
-    #hh_vacancies = parse_vacancies_hh(languages)
+    hh_vacancies = parse_vacancies_hh(languages)
     sj_vacancies = parse_vacancies_sj(languages)
-    print(sj_vacancies)
+    print_vacancies_table("HeadHunter Moscow", hh_vacancies)
+    print_vacancies_table("SuperJob Moscow", sj_vacancies)
 
 
 if __name__ == "__main__":
