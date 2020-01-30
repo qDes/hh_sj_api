@@ -1,7 +1,6 @@
 import os
 import requests
 
-from dotenv import load_dotenv
 from itertools import count
 from tools import get_average_salary, predict_salary
 
@@ -33,7 +32,6 @@ def predict_rub_salary_sj(vacancy):
 
 
 def fetch_vacancies_sj(languages):
-    load_dotenv()
     sj_token = os.environ['SJ_TOKEN']
     vacancies_by_lang = {}
     for language in languages:
