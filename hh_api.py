@@ -18,7 +18,8 @@ def get_hh_response(lang):
         page_data = response.json()
         if page >= page_data['pages']:
             break
-        yield page_data
+        items = page_data['items']
+        yield from items #page_data
 
 
 def predict_rub_salary_hh(salary):
@@ -32,17 +33,18 @@ def predict_rub_salary_hh(salary):
 def fetch_vacancies_hh(languages):
     vacancies_by_lang = {}
     for language in languages:
-        vacancies = []
-        for chunk in get_hh_response(language):
-            vacancies += chunk['items']
-        value = chunk['found']
+        vacancies = list(get_hh_response(language))
+        vacancies_with_salary = 0
         salaries = []
         for vacancy in vacancies:
-            salary = vacancy.get('salary')
-            salaries.append(predict_rub_salary_hh(salary))
+            salary_fork = vacancy.get('salary')
+            salary = predict_rub_salary_hh(salary_fork)
+            if salary:
+                vacancies_with_salary += 1
+                salaries.append(salary)
         avg_salary = get_average_salary(salaries)
-        vacancies_by_lang[language] = {"vacancies_found": value,
-                                       "vacancies_processed": len(vacancies),
+        vacancies_by_lang[language] = {"vacancies_found": len(vacancies),
+                                       "vacancies_processed": vacancies_with_salary,
                                        "average_salary": avg_salary
                                        }
     return vacancies_by_lang
