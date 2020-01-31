@@ -18,7 +18,8 @@ def get_sj_response(token, lang):
         except requests.exceptions.HTTPError:
             break
         page_data = response.json()
-        yield page_data
+        objects = page_data.get('objects')
+        yield from objects
         if not page_data.get('more'):
             break
 
@@ -35,17 +36,17 @@ def fetch_vacancies_sj(languages):
     sj_token = os.environ['SJ_TOKEN']
     vacancies_by_lang = {}
     for language in languages:
-        vacancies = []
-        for chunk in get_sj_response(sj_token, language):
-            vacancies += chunk['objects']
-        value = chunk.get('total')
+        vacancies = list(get_sj_response(sj_token, language))
+        vacancies_with_salary = 0
         salaries = []
         for vacancy in vacancies:
             salary = predict_rub_salary_sj(vacancy)
-            salaries.append(salary)
+            if salary:
+                vacancies_with_salary += 1
+                salaries.append(salary)
         avg_salary = get_average_salary(salaries)
-        vacancies_by_lang[language] = {"vacancies_found": value,
-                                       "vacancies_processed": len(vacancies),
+        vacancies_by_lang[language] = {"vacancies_found": len(vacancies),
+                                       "vacancies_processed": vacancies_with_salary,
                                        "average_salary": avg_salary
                                        }
     return vacancies_by_lang
