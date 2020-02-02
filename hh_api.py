@@ -5,7 +5,7 @@ from tools import predict_salary
 from tools import get_average_salary
 
 
-def get_hh_response(lang):
+def get_hh_vacancies_by_lang(lang):
     url = 'https://api.hh.ru/vacancies'
     for page in count():
         payload = {"text": f'Программист {lang}', "areas": "Москва",
@@ -19,7 +19,7 @@ def get_hh_response(lang):
         if page >= page_data['pages']:
             break
         items = page_data['items']
-        yield from items #page_data
+        yield from items
 
 
 def predict_rub_salary_hh(salary):
@@ -33,7 +33,7 @@ def predict_rub_salary_hh(salary):
 def fetch_vacancies_hh(languages):
     vacancies_by_lang = {}
     for language in languages:
-        vacancies = list(get_hh_response(language))
+        vacancies = list(get_hh_vacancies_by_lang(language))
         vacancies_with_salary = 0
         salaries = []
         for vacancy in vacancies:
