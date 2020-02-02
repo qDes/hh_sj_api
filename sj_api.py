@@ -1,11 +1,10 @@
-import os
 import requests
 
 from itertools import count
 from tools import get_average_salary, predict_salary
 
 
-def get_sj_response(token, lang):
+def get_sj_vacancies_by_lang(token, lang):
     url = 'https://api.superjob.ru/2.0/vacancies'
     headers = {'X-Api-App-Id': token}
     for page in count():
@@ -32,11 +31,10 @@ def predict_rub_salary_sj(vacancy):
     return predict_salary(salary_from, salary_to)
 
 
-def fetch_vacancies_sj(languages):
-    sj_token = os.environ['SJ_TOKEN']
+def fetch_vacancies_sj(languages, sj_token):
     vacancies_by_lang = {}
     for language in languages:
-        vacancies = list(get_sj_response(sj_token, language))
+        vacancies = list(get_sj_vacancies_by_lang(sj_token, language))
         vacancies_with_salary = 0
         salaries = []
         for vacancy in vacancies:
