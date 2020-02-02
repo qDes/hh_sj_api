@@ -1,3 +1,5 @@
+import os
+
 from dotenv import load_dotenv
 from tools import print_vacancies_table
 from hh_api import fetch_vacancies_hh
@@ -6,10 +8,11 @@ from sj_api import fetch_vacancies_sj
 
 def main():
     load_dotenv()
+    sj_token = os.environ["SJ_TOKEN"]
     languages = ["Python", "Java", "Javascript", "Ruby",
                  "PHP", "C++", "C", "Go"]
     hh_vacancies = fetch_vacancies_hh(languages)
-    sj_vacancies = fetch_vacancies_sj(languages)
+    sj_vacancies = fetch_vacancies_sj(languages, sj_token)
     print_vacancies_table("HeadHunter Moscow", hh_vacancies)
     print_vacancies_table("SuperJob Moscow", sj_vacancies)
 
